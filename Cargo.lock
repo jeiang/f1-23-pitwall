@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "f1-23-telemetry"
+name = "f1-23-pitwall"
 version = "0.1.0"
