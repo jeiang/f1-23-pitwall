@@ -3,17 +3,13 @@ name = "f1-23-pitwall"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-categories = ["game-development", "embedded", "networking"]
+categories = ["game-development", "embedded"]
 keywords = [
     "f1",
     "formula-1",
     "telemetry",
     "udp",
-    "packet",
-    "packet-encoding",
-    "packet-decoding",
-    "packet-serialization",
-    "packet-deserialization",
+    "packet"
 ]
 description = "A library for encoding and decoding F1 2023 telemetry packets."
 readme = "README.md"
