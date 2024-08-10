@@ -3,10 +3,6 @@
 #![deny(clippy::all, clippy::pedantic, clippy::cargo)]
 #![allow(dead_code, clippy::module_name_repetitions)]
 
-use crate::api::packet::{
-    DeserializeUDP,
-    Packet,
-};
 use color_eyre::eyre::Result;
 use tokio::net::UdpSocket;
 use tracing::{
@@ -17,13 +13,18 @@ use tracing::{
     Level,
 };
 
-mod api;
+use crate::packet::{
+    DeserializeUDP,
+    Packet,
+};
+
+pub(crate) mod packet;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
     // TODO: configure
-    let subscriber = tracing_subscriber::fmt().with_max_level(Level::INFO).finish();
+    let subscriber = tracing_subscriber::fmt().with_max_level(Level::DEBUG).finish();
     tracing::subscriber::set_global_default(subscriber)?;
     let sock = UdpSocket::bind("0.0.0.0:22023").await?;
     let mut buf = [0; 2048];
