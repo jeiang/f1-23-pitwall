@@ -1,6 +1,8 @@
 mod motion_data;
 mod reader;
 mod session_data;
+#[cfg(test)]
+mod test;
 
 use crate::api::models::Version;
 pub use motion_data::*;
