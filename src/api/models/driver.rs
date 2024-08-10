@@ -1,5 +1,8 @@
+use crate::api::macros::generate_enum_deserialize_impls;
+use num_derive::FromPrimitive;
+
 /// List of all drivers in the game
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum Driver {
     CarlosSainz,
     LouisDeletraz,
@@ -133,3 +136,5 @@ pub enum Driver {
     SergioSetteCamara,
     JuriVips,
 }
+
+generate_enum_deserialize_impls!(Driver);

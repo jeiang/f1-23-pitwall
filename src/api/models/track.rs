@@ -1,7 +1,10 @@
+use crate::api::macros::generate_enum_deserialize_impls;
+use num_derive::FromPrimitive;
+
 /// All tracks that you can race on in F1 2023.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum Track {
-    Melbourne,
+    Melbourne = 0,
     PaulRicard,
     Shanghai,
     Bahrain,
@@ -35,3 +38,5 @@ pub enum Track {
     LasVegas,
     Losail,
 }
+
+generate_enum_deserialize_impls!(Track);

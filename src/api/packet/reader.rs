@@ -1,72 +1,70 @@
-use crate::api::models::{
-    Vector3,
-    Version,
+use crate::api::{
+    macros::generate_deserialize_primitive,
+    packet::DeserializeUDPError::ExceededValidRange,
 };
-use tokio::io::AsyncRead;
+use num_traits::FromPrimitive;
+use std::any::type_name;
+use thiserror::Error;
+use tokio::io::{
+    AsyncRead,
+    AsyncReadExt,
+};
 
-pub trait PacketDeserialize {
-    async fn create_from<R>(reader: R) -> color_eyre::eyre::Result<Self>
+#[derive(Error, Debug)]
+pub enum DeserializeUDPError {
+    #[error("failed to deserialize the udp packet because of {source}")]
+    ReadError {
+        #[from]
+        #[backtrace]
+        source: std::io::Error,
+    },
+    #[error("tried to deserialize {got} which is outside of the expected range for {name}")]
+    ExceededValidRange { got: u8, name: &'static str },
+}
+
+pub type DeserializeUDPResult<T> = Result<T, DeserializeUDPError>;
+
+pub trait DeserializeUDP {
+    async fn deserialize<R>(reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
         Self: Sized;
 }
 
-impl PacketDeserialize for u8 {
-    async fn create_from<R>(mut reader: R) -> color_eyre::eyre::Result<Self>
+pub trait U8Deserializable {}
+
+impl<T: U8Deserializable + FromPrimitive> DeserializeUDP for T {
+    async fn deserialize<R>(mut reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
         Self: Sized,
     {
-        use tokio::io::AsyncReadExt;
-        let result = reader.read_u8().await?;
-        Ok(result)
+        let level = reader.read_u8().await?;
+        Self::from_u8(level).ok_or(ExceededValidRange {
+            got: level,
+            name: type_name::<T>(),
+        })
     }
 }
 
-impl<T> PacketDeserialize for Vector3<T>
-where
-    T: PacketDeserialize,
-{
-    async fn create_from<R>(mut reader: R) -> color_eyre::Result<Self>
+impl DeserializeUDP for u8 {
+    async fn deserialize<R>(mut reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
         Self: Sized,
     {
-        let x = T::create_from(&mut reader).await?;
-        let y = T::create_from(&mut reader).await?;
-        let z = T::create_from(&mut reader).await?;
-        Ok(Vector3 { x, y, z })
+        Ok(reader.read_u8().await?)
     }
 }
 
-impl PacketDeserialize for Version {
-    async fn create_from<R>(mut reader: R) -> color_eyre::Result<Self>
+impl DeserializeUDP for i8 {
+    async fn deserialize<R>(mut reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
         Self: Sized,
     {
-        let major = u8::create_from(&mut reader).await?;
-        let minor = u8::create_from(&mut reader).await?;
-        Ok(Version { major, minor })
+        Ok(reader.read_i8().await?)
     }
-}
-
-macro_rules! generate_deserialize_primitive {
-    ($x:ident) => {
-        paste::paste! {
-            impl crate::api::packet::reader::PacketDeserialize for $x {
-                async fn create_from<R>(mut reader: R) -> color_eyre::eyre::Result<Self>
-                where
-                    R: tokio::io::AsyncRead + Unpin,
-                    Self: Sized,
-                {
-                    use tokio::io::AsyncReadExt;
-                    let result = reader.[<read_ $x _le>]().await?;
-                    Ok(result)
-                }
-            }
-        }
-    };
 }
 
 generate_deserialize_primitive!(i16);
@@ -77,3 +75,44 @@ generate_deserialize_primitive!(i64);
 generate_deserialize_primitive!(u64);
 generate_deserialize_primitive!(f32);
 generate_deserialize_primitive!(f64);
+
+pub async fn deserialize_bool<R>(mut reader: R) -> DeserializeUDPResult<bool>
+where
+    R: AsyncRead + Unpin,
+{
+    let value = u8::deserialize(&mut reader).await?;
+    match value {
+        0 => Ok(false),
+        1 => Ok(true),
+        x => Err(ExceededValidRange {
+            got: x,
+            name: type_name::<bool>(),
+        }),
+    }
+}
+
+pub async fn deserialize_option<R, T>(mut reader: R, none_value: T) -> DeserializeUDPResult<Option<T>>
+where
+    R: AsyncRead + Unpin,
+    T: DeserializeUDP + PartialEq,
+{
+    let value = T::deserialize(&mut reader).await?;
+    if value == none_value {
+        Ok(None)
+    } else {
+        Ok(Some(value))
+    }
+}
+
+pub async fn deserialize_vec<R, T>(mut reader: R, limit: usize) -> DeserializeUDPResult<Vec<T>>
+where
+    R: AsyncRead + Unpin,
+    T: DeserializeUDP,
+{
+    let mut vec = Vec::with_capacity(limit);
+    for _ in 0..limit {
+        let value = T::deserialize(&mut reader).await?;
+        vec.push(value);
+    }
+    Ok(vec)
+}

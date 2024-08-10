@@ -1,28 +1,19 @@
-#![allow(clippy::module_name_repetitions)]
+mod motion_data;
+mod reader;
+mod session_data;
 
 use crate::api::models::Version;
+pub use motion_data::*;
+pub use reader::*;
+pub use session_data::*;
 use tokio::io::{
     AsyncRead,
     AsyncReadExt,
 };
+use tracing::trace;
 
-pub mod motion_data;
-pub mod reader;
-pub mod session_data;
-
-use crate::api::packet::reader::PacketDeserialize;
-pub use motion_data::MotionData;
-pub use session_data::SessionData;
-
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Packet {
-    pub header: Header,
-    pub data: Data,
-}
-
-/// The header of a UDP packet from the F1 2023 game.
-#[derive(Debug)]
-pub struct Header {
     /// The format of the packet. Should be 2023.
     pub format: u16,
 
@@ -52,22 +43,44 @@ pub struct Header {
 
     /// Index of the secondary player car in the array of cars.
     pub secondary_player_car_index: Option<u8>,
+
+    /// The actual data contained in this packet
+    pub data: Data,
 }
 
-impl PacketDeserialize for Header {
-    async fn create_from<R>(mut reader: R) -> color_eyre::eyre::Result<Self>
+#[derive(Debug, Clone, PartialEq)]
+pub enum Data {
+    Motion(Box<MotionData>),
+    Session(Box<SessionData>),
+    Unknown,
+}
+
+impl DeserializeUDP for Packet {
+    async fn deserialize<R>(mut reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
+        Self: Sized,
     {
         let format = reader.read_u16_le().await?;
+        trace!("parsed format as {format:?}");
         let game_year = reader.read_u8().await?;
-        let game_version = Version::create_from(&mut reader).await?;
+        trace!("parsed game_year as {game_year:?}");
+        let game_version = Version::deserialize(&mut reader).await?;
+        trace!("parsed game_version as {game_version:?}");
         let version = reader.read_u8().await?;
+        trace!("parsed version as {version:?}");
+        let packet_id = reader.read_u8().await?;
+        trace!("parsed packet_id as {packet_id:?}");
         let session_uid = reader.read_u64_le().await?;
+        trace!("parsed session_uid as {session_uid:?}");
         let session_time = reader.read_f32_le().await?;
+        trace!("parsed session_time as {session_time:?}");
         let frame_identifier = reader.read_u32_le().await?;
+        trace!("parsed frame_identifier as {frame_identifier:?}");
         let overall_frame_identifier = reader.read_u32_le().await?;
+        trace!("parsed overall_frame_identifier as {overall_frame_identifier:?}");
         let player_car_index = reader.read_u8().await?;
+        trace!("parsed player_car_index as {player_car_index:?}");
         let secondary_player_car_index = {
             let idx = reader.read_u8().await?;
             if idx == 255 {
@@ -76,7 +89,13 @@ impl PacketDeserialize for Header {
                 Some(idx)
             }
         };
-
+        trace!("parsed secondary_player_car_index as {secondary_player_car_index:?}");
+        let data = match packet_id {
+            0 => Data::Motion(Box::new(MotionData::deserialize(&mut reader).await?)),
+            1 => Data::Session(Box::new(SessionData::deserialize(&mut reader).await?)),
+            _ => Data::Unknown,
+        };
+        trace!("parsed packet data as {data:?}");
         Ok(Self {
             format,
             game_year,
@@ -88,12 +107,7 @@ impl PacketDeserialize for Header {
             overall_frame_identifier,
             player_car_index,
             secondary_player_car_index,
+            data,
         })
     }
-}
-
-#[derive(Debug)]
-pub enum Data {
-    Motion(Box<MotionData>),
-    Session(Box<SessionData>),
 }

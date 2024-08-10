@@ -1,5 +1,8 @@
+use crate::api::macros::generate_enum_deserialize_impls;
+use num_derive::FromPrimitive;
+
 /// All Teams available in F1 2023.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum Team {
     Mercedes,
     Prema21,
@@ -67,3 +70,5 @@ pub enum Team {
     F1Custom,
     Dams22,
 }
+
+generate_enum_deserialize_impls!(Team);

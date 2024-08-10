@@ -1,5 +1,8 @@
+use crate::api::macros::generate_enum_deserialize_impls;
+use num_derive::FromPrimitive;
+
 /// Game mode enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum GameMode {
     EventMode,
     GrandPrix,
@@ -20,3 +23,5 @@ pub enum GameMode {
     Career23Online,
     Benchmark,
 }
+
+generate_enum_deserialize_impls!(GameMode);

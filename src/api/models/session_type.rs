@@ -1,8 +1,12 @@
+use crate::api::macros::generate_enum_deserialize_impls;
+use num_derive::FromPrimitive;
+
 // TODO: determine which code is for a sprint race, and what R3 is
 /// The type of session that is currently running
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum SessionType {
-    Unknown,
+    #[default]
+    Unknown = 0,
     Practice1,
     Practice2,
     Practice3,
@@ -17,3 +21,5 @@ pub enum SessionType {
     Race3,
     TimeTrial,
 }
+
+generate_enum_deserialize_impls!(SessionType);
