@@ -29,7 +29,7 @@ pub enum Track {
     Hanoi,
     Zandvoort,
     Imola,
-    Portimão,
+    Portimao,
     Jeddah,
     Miami,
     LasVegas,

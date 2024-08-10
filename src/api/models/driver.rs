@@ -2,7 +2,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Driver {
     CarlosSainz,
-    LouisDelétraz,
+    LouisDeletraz,
     TheoPourchaire,
     DaniilKvyat,
     AntonioFuoco,
@@ -16,7 +16,7 @@ pub enum Driver {
     FelipeMassa,
     AlexanderAlbon,
     AlessioDeledda,
-    KimiRäikkönen,
+    KimiRaikkonen,
     NicholasLatifi,
     BentViscaal,
     LewisHamilton,
@@ -122,7 +122,7 @@ pub enum Driver {
     CasperAkkerman,
     GeorgeRussell,
     JensonButton,
-    MaximilianGünther,
+    MaximilianGunther,
     DavidCoulthard,
     NireiFukuzumi,
     NicoRosberg,
@@ -130,6 +130,6 @@ pub enum Driver {
     OscarPiastri,
     LandoNorris,
     LiamLawson,
-    SérgioSetteCâmara,
+    SergioSetteCamara,
     JuriVips,
 }
