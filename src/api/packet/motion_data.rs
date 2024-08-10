@@ -29,7 +29,6 @@ impl DeserializeUDP for MotionData {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct CarMotionData {
     pub world_position: Vector3<f32>,

@@ -3,7 +3,7 @@ use crate::api::models::Vector3;
 
 #[tokio::test]
 async fn deserialize_zeroed_car_motion_data() {
-    let bytes = [0; 20*3];
+    let bytes = [0; 20 * 3];
     let sample_data = CarMotionData {
         world_position: Vector3::default(),
         world_velocity: Vector3::default(),

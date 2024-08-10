@@ -1,10 +1,14 @@
+mod lap_data;
 mod motion_data;
 mod reader;
 mod session_data;
 #[cfg(test)]
 mod test;
 
-use crate::api::models::Version;
+use crate::api::{
+    models::Version,
+    packet::lap_data::SessionLapData,
+};
 pub use motion_data::*;
 pub use reader::*;
 pub use session_data::*;
@@ -54,6 +58,7 @@ pub struct Packet {
 pub enum Data {
     Motion(Box<MotionData>),
     Session(Box<SessionData>),
+    Lap(Box<SessionLapData>),
     Unknown,
 }
 
@@ -95,6 +100,7 @@ impl DeserializeUDP for Packet {
         let data = match packet_id {
             0 => Data::Motion(Box::new(MotionData::deserialize(&mut reader).await?)),
             1 => Data::Session(Box::new(SessionData::deserialize(&mut reader).await?)),
+            2 => Data::Lap(Box::new(SessionLapData::deserialize(&mut reader).await?)),
             _ => Data::Unknown,
         };
         trace!("parsed packet data as {data:?}");

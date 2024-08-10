@@ -1,8 +1,24 @@
-use crate::api::packet::{
-    DeserializeUDP,
-    DeserializeUDPResult,
+use crate::api::{
+    macros::generate_enum_deserialize_impls,
+    packet::{
+        DeserializeUDP,
+        DeserializeUDPResult,
+    },
 };
+use num_derive::FromPrimitive;
 use tokio::io::AsyncRead;
+
+/// Pit Status of a car
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
+pub enum PitStatus {
+    #[default]
+    None,
+    Pitting,
+    InPitArea,
+}
+
+generate_enum_deserialize_impls!(PitStatus);
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StopDetails {
