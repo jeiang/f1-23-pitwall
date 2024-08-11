@@ -103,6 +103,7 @@ dependencies = [
 name = "f1-23-pitwall"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "color-eyre",
  "num-derive",
  "num-traits",

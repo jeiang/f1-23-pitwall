@@ -22,6 +22,10 @@ pub(crate) enum DeserializeUDPError {
     },
     #[error("tried to deserialize {got} which is outside of the expected range for {name}")]
     ExceededValidRange { got: u8, name: &'static str },
+    #[error("tried to deserialize {got:?} which is outside of the expected range for {name}")]
+    InvalidBuffer { got: Box<[u8]>, name: &'static str },
+    #[error("received a packet with version {got} which was unexpected (expected: {expected})")]
+    UnknownVersion { got: String, expected: &'static str },
 }
 
 pub(crate) type DeserializeUDPResult<T> = Result<T, DeserializeUDPError>;

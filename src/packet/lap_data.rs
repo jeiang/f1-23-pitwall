@@ -69,7 +69,7 @@ impl DeserializeUDP for LapTimes {
 
 /// Unserved Penalties
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Penalties {
+pub(crate) struct UnservedPenalties {
     /// Accumulated time penalties in seconds to be added
     time: Duration,
     /// Accumulated number of warnings issued
@@ -82,7 +82,7 @@ pub(crate) struct Penalties {
     stop_go: u8,
 }
 
-impl DeserializeUDP for Penalties {
+impl DeserializeUDP for UnservedPenalties {
     async fn deserialize<R>(mut reader: R) -> DeserializeUDPResult<Self>
     where
         R: AsyncRead + Unpin,
@@ -160,7 +160,7 @@ pub(crate) struct LapData {
     pub(crate) num_pit_stops_taken: u8,
     pub(crate) sector: Sector,
     pub(crate) is_current_lap_invalid: bool,
-    pub(crate) penalties: Penalties,
+    pub(crate) penalties: UnservedPenalties,
     pub(crate) starting_grid_position: u8,
     pub(crate) driver_status: DriverStatus,
     pub(crate) result_status: ResultStatus,
@@ -197,7 +197,7 @@ impl DeserializeUDP for LapData {
         trace!("parsed lap data sector as {sector:?}");
         let is_current_lap_invalid = deserialize_bool(&mut reader).await?;
         trace!("parsed lap data is_current_lap_invalid as {is_current_lap_invalid}");
-        let penalties = Penalties::deserialize(&mut reader).await?;
+        let penalties = UnservedPenalties::deserialize(&mut reader).await?;
         trace!("parsed lap data penalties as {penalties:?}");
         let starting_grid_position = u8::deserialize(&mut reader).await?;
         trace!("parsed lap data starting_grid_position as {starting_grid_position}");

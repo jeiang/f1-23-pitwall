@@ -23,15 +23,19 @@ mod vector3;
 mod version;
 mod weather;
 
+mod event_data;
 mod macros;
+mod penalty;
 #[cfg(test)]
 mod test;
 
 pub(crate) use driver_status::*;
+pub(crate) use event_data::*;
 pub(crate) use formula::*;
 pub(crate) use game_mode::*;
 pub(crate) use lap_data::*;
 pub(crate) use motion_data::*;
+pub(crate) use penalty::*;
 pub(crate) use pit::*;
 pub(crate) use reader::*;
 pub(crate) use result_status::*;
@@ -49,6 +53,8 @@ pub(crate) use track::*;
 pub(crate) use vector3::*;
 pub(crate) use version::*;
 pub(crate) use weather::*;
+
+use crate::packet::DeserializeUDPError::UnknownVersion;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Packet {
@@ -91,6 +97,7 @@ pub(crate) enum Data {
     Motion(Box<MotionData>),
     Session(Box<SessionData>),
     Lap(Box<SessionLapData>),
+    Event(Box<EventData>),
     Unknown,
 }
 
@@ -102,6 +109,14 @@ impl DeserializeUDP for Packet {
     {
         let format = reader.read_u16_le().await?;
         trace!("parsed format as {format:?}");
+
+        if format != 2023 {
+            return Err(UnknownVersion {
+                got: format!("{format}"),
+                expected: "2023",
+            });
+        }
+
         let game_year = reader.read_u8().await?;
         trace!("parsed game_year as {game_year:?}");
         let game_version = Version::deserialize(&mut reader).await?;
@@ -133,6 +148,7 @@ impl DeserializeUDP for Packet {
             0 => Data::Motion(Box::new(MotionData::deserialize(&mut reader).await?)),
             1 => Data::Session(Box::new(SessionData::deserialize(&mut reader).await?)),
             2 => Data::Lap(Box::new(SessionLapData::deserialize(&mut reader).await?)),
+            3 => Data::Event(Box::new(EventData::deserialize(&mut reader).await?)),
             _ => Data::Unknown,
         };
         trace!("parsed packet data as {data:?}");
