@@ -26,5 +26,4 @@ macro_rules! generate_deserialize_primitive {
     };
 }
 
-pub(crate) use generate_deserialize_primitive;
-pub(crate) use generate_enum_deserialize_impls;
+pub(crate) use {generate_deserialize_primitive, generate_enum_deserialize_impls};

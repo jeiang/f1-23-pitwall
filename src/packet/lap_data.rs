@@ -1,20 +1,18 @@
-use std::{
-    ops::Add,
-    time::Duration,
-};
+use std::ops::Add;
+use std::time::Duration;
 
 use tokio::io::AsyncRead;
 use tracing::trace;
 
 use crate::packet::{
-    deserialize_bool,
-    deserialize_option,
     DeserializeUDP,
     DeserializeUDPResult,
     DriverStatus,
     PitStatus,
     ResultStatus,
     Sector,
+    deserialize_bool,
+    deserialize_option,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,18 +50,13 @@ impl DeserializeUDP for LapTimes {
         trace!("computed current lap time as {current:#?}");
         let last = Duration::from_millis(u64::from(last_lap_time_ms));
         trace!("computed last lap time as {last:#?}");
-        let sector1 =
-            Duration::from_mins(u64::from(sector1_time_min)).add(Duration::from_millis(u64::from(sector1_time_ms)));
+        let sector1 = Duration::from_mins(u64::from(sector1_time_min))
+            .add(Duration::from_millis(u64::from(sector1_time_ms)));
         trace!("computed sector1 lap time as {sector1:#?}");
-        let sector2 =
-            Duration::from_mins(u64::from(sector2_time_min)).add(Duration::from_millis(u64::from(sector2_time_ms)));
+        let sector2 = Duration::from_mins(u64::from(sector2_time_min))
+            .add(Duration::from_millis(u64::from(sector2_time_ms)));
         trace!("computed sector2 lap time as {sector2:#?}");
-        Ok(Self {
-            current,
-            last,
-            sector1,
-            sector2,
-        })
+        Ok(Self { current, last, sector1, sector2 })
     }
 }
 
@@ -98,13 +91,7 @@ impl DeserializeUDP for UnservedPenalties {
         trace!("parsed penalties_drive_through as {drive_through}");
         let stop_go = u8::deserialize(&mut reader).await?;
         trace!("parsed penalties_stop_go as {stop_go}");
-        Ok(Self {
-            time,
-            total_warnings,
-            corner_cutting_warnings,
-            drive_through,
-            stop_go,
-        })
+        Ok(Self { time, total_warnings, corner_cutting_warnings, drive_through, stop_go })
     }
 }
 
@@ -133,12 +120,7 @@ impl DeserializeUDP for PitLapInfo {
         trace!("parsed pit time_of_stop as {time_of_stop:#?}");
         let should_serve_penalty = deserialize_bool(&mut reader).await?;
         trace!("parsed pit should_serve_penalty as {should_serve_penalty}");
-        Ok(Self {
-            timer_active,
-            time_in_lane,
-            time_of_stop,
-            should_serve_penalty,
-        })
+        Ok(Self { timer_active, time_in_lane, time_of_stop, should_serve_penalty })
     }
 }
 
@@ -147,11 +129,11 @@ pub(crate) struct LapData {
     pub(crate) lap_times: LapTimes,
     pub(crate) delta_to_car_in_front: Duration,
     pub(crate) delta_to_race_leader: Duration,
-    /// Distance vehicle is around current lap in metres – could be negative if line hasn't been
-    /// crossed yet
+    /// Distance vehicle is around current lap in metres – could be negative if
+    /// line hasn't been crossed yet
     pub(crate) lap_distance: f32,
-    /// Total distance travelled in session in metres – could be negative if line hasn't been
-    /// crossed yet
+    /// Total distance travelled in session in metres – could be negative if
+    /// line hasn't been crossed yet
     pub(crate) total_distance: f32,
     pub(crate) safety_car_delta: Duration,
     pub(crate) race_position: u8,
@@ -175,9 +157,11 @@ impl DeserializeUDP for LapData {
     {
         let lap_times = LapTimes::deserialize(&mut reader).await?;
         trace!("parsed lap data lap_times as {lap_times:?}");
-        let delta_to_car_in_front = Duration::from_millis(u64::from(u16::deserialize(&mut reader).await?));
+        let delta_to_car_in_front =
+            Duration::from_millis(u64::from(u16::deserialize(&mut reader).await?));
         trace!("parsed lap data delta_to_car_in_front as {delta_to_car_in_front:#?}");
-        let delta_to_race_leader = Duration::from_millis(u64::from(u16::deserialize(&mut reader).await?));
+        let delta_to_race_leader =
+            Duration::from_millis(u64::from(u16::deserialize(&mut reader).await?));
         trace!("parsed lap data delta_to_race_leader as {delta_to_race_leader:#?}");
         let lap_distance = f32::deserialize(&mut reader).await?;
         trace!("parsed lap data lap_distance as {lap_distance}");
@@ -252,14 +236,12 @@ impl DeserializeUDP for SessionLapData {
             trace!("deserialized car {i} lap data as {value:?}");
             lap_data.push(value);
         }
-        let time_trial_personal_best_car_idx = deserialize_option(&mut reader, 255u8).await?.map(usize::from);
+        let time_trial_personal_best_car_idx =
+            deserialize_option(&mut reader, 255u8).await?.map(usize::from);
         trace!("parsed time_trial_personal_best_car_idx as {time_trial_personal_best_car_idx:?}");
-        let time_trial_rival_car_idx = deserialize_option(&mut reader, 255u8).await?.map(usize::from);
+        let time_trial_rival_car_idx =
+            deserialize_option(&mut reader, 255u8).await?.map(usize::from);
         trace!("parsed time_trial_rival_car_idx as {time_trial_rival_car_idx:?}");
-        Ok(Self {
-            lap_data,
-            time_trial_personal_best_car_idx,
-            time_trial_rival_car_idx,
-        })
+        Ok(Self { lap_data, time_trial_personal_best_car_idx, time_trial_rival_car_idx })
     }
 }

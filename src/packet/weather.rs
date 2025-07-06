@@ -1,15 +1,8 @@
-use std::cmp::max;
-
 use num_derive::FromPrimitive;
 use tokio::io::AsyncRead;
 
-use crate::packet::{
-    deserialize_vec,
-    macros::generate_enum_deserialize_impls,
-    DeserializeUDP,
-    DeserializeUDPResult,
-    SessionType,
-};
+use crate::packet::macros::generate_enum_deserialize_impls;
+use crate::packet::{DeserializeUDP, DeserializeUDPResult, SessionType, deserialize_vec};
 
 /// Weather types for the game.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
@@ -54,17 +47,16 @@ impl DeserializeUDP for Forecast {
         R: AsyncRead + Unpin,
         Self: Sized,
     {
-        let count = max(55, u8::deserialize(&mut reader).await?);
-        let weather_forecast_samples = deserialize_vec(&mut reader, count as usize).await?;
+        let count = u8::deserialize(&mut reader).await?;
+        let weather_forecast_samples = deserialize_vec(&mut reader, 56).await?;
+        let weather_forecast_samples = weather_forecast_samples[0..count.into()].to_vec();
         let forecast_accuracy = ForecastAccuracy::deserialize(&mut reader).await?;
-        Ok(Self {
-            weather_forecast_samples,
-            forecast_accuracy,
-        })
+        Ok(Self { weather_forecast_samples, forecast_accuracy })
     }
 }
 
-/// The weather forecast sample contains the weather forecast for a specific time offset.
+/// The weather forecast sample contains the weather forecast for a specific
+/// time offset.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ForecastSample {
     /// The session type for this forecast
@@ -73,9 +65,11 @@ pub(crate) struct ForecastSample {
     pub(crate) time_offset: u8,
     /// The weather conditions for this forecast
     pub(crate) weather: Weather,
-    /// The track temperature in degrees Celsius and whether it is increasing or decreasing
+    /// The track temperature in degrees Celsius and whether it is increasing or
+    /// decreasing
     pub(crate) track_temperature: (i8, TemperatureChange),
-    /// The air temperature in degrees Celsius and whether it is increasing or decreasing
+    /// The air temperature in degrees Celsius and whether it is increasing or
+    /// decreasing
     pub(crate) air_temperature: (i8, TemperatureChange),
     /// The chance of rain as a percentage (0-100)
     pub(crate) rain_percentage: u8,

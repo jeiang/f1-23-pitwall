@@ -1,9 +1,6 @@
 use tokio::io::AsyncRead;
 
-use crate::packet::{
-    DeserializeUDP,
-    DeserializeUDPResult,
-};
+use crate::packet::{DeserializeUDP, DeserializeUDPResult};
 
 /// Generic struct for the F1 Vector3
 #[derive(Debug, Default, Clone, Eq, PartialEq)]

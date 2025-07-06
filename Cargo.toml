@@ -19,7 +19,8 @@ repository = "https://github.com/jeiang/f1-23-telemetry"
 color-eyre = "0.6"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
 paste = "1.0"
 thiserror = "1.0"
 num-traits = "0.2"

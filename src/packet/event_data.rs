@@ -1,22 +1,17 @@
-use std::{
-    any::type_name,
-    time::Duration,
-};
+use std::any::type_name;
+use std::time::Duration;
 
 use bitflags::bitflags;
-use tokio::io::{
-    AsyncRead,
-    AsyncReadExt,
-};
+use tokio::io::{AsyncRead, AsyncReadExt};
 
+use crate::packet::DeserializeUDPError::InvalidBuffer;
 use crate::packet::{
-    deserialize_bool,
-    deserialize_option,
     DeserializeUDP,
-    DeserializeUDPError::InvalidBuffer,
     DeserializeUDPResult,
     Infringement,
     Penalty,
+    deserialize_bool,
+    deserialize_option,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -159,34 +154,36 @@ impl DeserializeUDP for EventData {
     {
         let mut buf = [0; 4];
         reader.read_exact(&mut buf).await?;
-        match buf {
-            [83, 83, 84, 65] => Ok(EventData::SessionStarted),
-            [83, 69, 78, 68] => Ok(EventData::SessionEnded),
-            [70, 84, 76, 80] => {
+        let string = String::from_utf8_lossy(&buf);
+        match string.as_ref() {
+            "SSTA" => Ok(EventData::SessionStarted),
+            "SEND" => Ok(EventData::SessionEnded),
+            "FTLP" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 let lap_time = Duration::from_secs_f32(f32::deserialize(&mut reader).await?);
                 Ok(EventData::FastestLap { vehicle_idx, lap_time })
             }
-            [82, 84, 77, 84] => {
+            "RTMT" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 Ok(EventData::Retirement { vehicle_idx })
             }
-            [68, 82, 83, 69] => Ok(EventData::DRSEnabled),
-            [68, 82, 83, 68] => Ok(EventData::DRSDisabled),
-            [84, 77, 80, 84] => {
+            "DRSE" => Ok(EventData::DRSEnabled),
+            "DRSD" => Ok(EventData::DRSDisabled),
+            "TMPT" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 Ok(EventData::TeamMateInPits { vehicle_idx })
             }
-            [67, 72, 81, 70] => Ok(EventData::ChequeredFlag),
-            [82, 67, 87, 78] => {
+            "CHQF" => Ok(EventData::ChequeredFlag),
+            "RCWN" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 Ok(EventData::RaceWinner { vehicle_idx })
             }
-            [80, 69, 78, 65] => {
+            "PENA" => {
                 let penalty_type = Penalty::deserialize(&mut reader).await?;
                 let infringement_type = Infringement::deserialize(&mut reader).await?;
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
-                let other_vehicle_idx = deserialize_option(&mut reader, 255u8).await?.map(usize::from);
+                let other_vehicle_idx =
+                    deserialize_option(&mut reader, 255u8).await?.map(usize::from);
                 let time = deserialize_option(&mut reader, 255u8).await?;
                 let lap_number = u8::deserialize(&mut reader).await?;
                 let places_gained = deserialize_option(&mut reader, 255u8).await?;
@@ -200,12 +197,13 @@ impl DeserializeUDP for EventData {
                     places_gained,
                 })
             }
-            [83, 80, 84, 80] => {
+            "SPTP" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 let speed = f32::deserialize(&mut reader).await?;
                 let is_overall_fastest_in_session = deserialize_bool(&mut reader).await?;
                 let is_driver_fastest_in_session = deserialize_bool(&mut reader).await?;
-                let fastest_vehicle_idx_in_session = usize::from(u8::deserialize(&mut reader).await?);
+                let fastest_vehicle_idx_in_session =
+                    usize::from(u8::deserialize(&mut reader).await?);
                 let fastest_speed_in_session = f32::deserialize(&mut reader).await?;
                 Ok(EventData::SpeedTrapTriggered {
                     vehicle_idx,
@@ -216,46 +214,37 @@ impl DeserializeUDP for EventData {
                     fastest_speed_in_session,
                 })
             }
-            [83, 84, 76, 71] => {
+            "STLG" => {
                 let num_lights = u8::deserialize(&mut reader).await?;
                 Ok(EventData::StartLights { num_lights })
             }
-            [76, 71, 79, 84] => Ok(EventData::LightsOut),
-            [68, 84, 83, 86] => {
+            "LGOT" => Ok(EventData::LightsOut),
+            "DTSV" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 Ok(EventData::DriveThroughServed { vehicle_idx })
             }
-            [83, 71, 83, 86] => {
+            "SGSV" => {
                 let vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 Ok(EventData::StopGoServed { vehicle_idx })
             }
-            [70, 76, 66, 75] => {
+            "FLBK" => {
                 let flashback_frame_identifier = u32::deserialize(&mut reader).await?;
                 let flashback_session_time = f32::deserialize(&mut reader).await?;
-                Ok(EventData::Flashback {
-                    flashback_frame_identifier,
-                    flashback_session_time,
-                })
+                Ok(EventData::Flashback { flashback_frame_identifier, flashback_session_time })
             }
-            [66, 85, 84, 78] => {
+            "BUTN" => {
                 let value = u32::deserialize(&mut reader).await?;
                 // should not panic as u32 is completely filled
                 let flags = ButtonFlags::from_bits(value).unwrap();
                 Ok(EventData::ButtonStatus(flags))
             }
-            [82, 68, 70, 76] => Ok(EventData::RedFlag),
-            [79, 86, 84, 75] => {
+            "RDFL" => Ok(EventData::RedFlag),
+            "OVTK" => {
                 let overtaking_vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
                 let being_overtaken_vehicle_idx = usize::from(u8::deserialize(&mut reader).await?);
-                Ok(EventData::Overtake {
-                    overtaking_vehicle_idx,
-                    being_overtaken_vehicle_idx,
-                })
+                Ok(EventData::Overtake { overtaking_vehicle_idx, being_overtaken_vehicle_idx })
             }
-            _ => Err(InvalidBuffer {
-                got: Box::new(buf),
-                name: type_name::<EventData>(),
-            }),
+            _ => Err(InvalidBuffer { got: Box::new(buf), name: type_name::<EventData>() }),
         }
     }
 }

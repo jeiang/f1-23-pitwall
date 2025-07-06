@@ -25,7 +25,10 @@ mod weather;
 
 mod event_data;
 mod macros;
+mod nationality;
+mod participants;
 mod penalty;
+mod platform;
 #[cfg(test)]
 mod test;
 
@@ -44,10 +47,7 @@ pub(crate) use sector::*;
 pub(crate) use session_data::*;
 pub(crate) use session_length::*;
 pub(crate) use session_type::*;
-use tokio::io::{
-    AsyncRead,
-    AsyncReadExt,
-};
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tracing::trace;
 pub(crate) use track::*;
 pub(crate) use vector3::*;
@@ -55,6 +55,7 @@ pub(crate) use version::*;
 pub(crate) use weather::*;
 
 use crate::packet::DeserializeUDPError::UnknownVersion;
+use crate::packet::participants::ParticipantsData;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Packet {
@@ -98,6 +99,7 @@ pub(crate) enum Data {
     Session(Box<SessionData>),
     Lap(Box<SessionLapData>),
     Event(Box<EventData>),
+    Participants(Box<ParticipantsData>),
     Unknown,
 }
 
@@ -111,10 +113,7 @@ impl DeserializeUDP for Packet {
         trace!("parsed format as {format:?}");
 
         if format != 2023 {
-            return Err(UnknownVersion {
-                got: format!("{format}"),
-                expected: "2023",
-            });
+            return Err(UnknownVersion { got: format!("{format}"), expected: "2023" });
         }
 
         let game_year = reader.read_u8().await?;
@@ -137,19 +136,36 @@ impl DeserializeUDP for Packet {
         trace!("parsed player_car_index as {player_car_index:?}");
         let secondary_player_car_index = {
             let idx = reader.read_u8().await?;
-            if idx == 255 {
-                None
-            } else {
-                Some(idx)
-            }
+            if idx == 255 { None } else { Some(idx) }
         };
         trace!("parsed secondary_player_car_index as {secondary_player_car_index:?}");
         let data = match packet_id {
-            0 => Data::Motion(Box::new(MotionData::deserialize(&mut reader).await?)),
-            1 => Data::Session(Box::new(SessionData::deserialize(&mut reader).await?)),
-            2 => Data::Lap(Box::new(SessionLapData::deserialize(&mut reader).await?)),
-            3 => Data::Event(Box::new(EventData::deserialize(&mut reader).await?)),
-            _ => Data::Unknown,
+            // 0 => Data::Motion(Box::new(MotionData::deserialize(&mut reader).await?)),
+            // 1 => Data::Session(Box::new(SessionData::deserialize(&mut reader).await?)),
+            // 2 => Data::Lap(Box::new(SessionLapData::deserialize(&mut reader).await?)),
+            // 3 => Data::Event(Box::new(EventData::deserialize(&mut reader).await?)),
+            4 => Data::Participants(Box::new(ParticipantsData::deserialize(&mut reader).await?)),
+            x => {
+                let name = match x {
+                    0 => "Motion",
+                    1 => "Session",
+                    2 => "Lap",
+                    3 => "Event",
+                    4 => "Participants",
+                    5 => "Car Setups",
+                    6 => "Car Telemetry",
+                    7 => "Car Status",
+                    8 => "Final Classification",
+                    9 => "Lobby Info",
+                    10 => "Car Damage",
+                    11 => "Session History",
+                    12 => "Tyre Sets",
+                    13 => "Motion Ex",
+                    _ => "Unknown",
+                };
+                trace!("Unknown packet {x} of real name {name}");
+                Data::Unknown
+            }
         };
         trace!("parsed packet data as {data:?}");
         Ok(Self {

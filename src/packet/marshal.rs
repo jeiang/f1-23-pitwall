@@ -1,11 +1,8 @@
 use num_derive::FromPrimitive;
 use tokio::io::AsyncRead;
 
-use crate::packet::{
-    macros::generate_enum_deserialize_impls,
-    DeserializeUDP,
-    DeserializeUDPResult,
-};
+use crate::packet::macros::generate_enum_deserialize_impls;
+use crate::packet::{DeserializeUDP, DeserializeUDPResult};
 
 /// Flags for the marshal zones
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, FromPrimitive)]
@@ -20,8 +17,9 @@ pub(crate) enum ZoneFlag {
 
 generate_enum_deserialize_impls!(ZoneFlag);
 
-/// The marshal zones are a series of zones that cover the track. Each zone has a start point and a
-/// flag. The flags are used to inform the driver of the condition of the track in that zone.
+/// The marshal zones are a series of zones that cover the track. Each zone has
+/// a start point and a flag. The flags are used to inform the driver of the
+/// condition of the track in that zone.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Zone {
     pub(crate) zone_start: f32,

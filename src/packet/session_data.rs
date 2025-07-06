@@ -3,13 +3,8 @@ use std::cmp::max;
 use tokio::io::AsyncRead;
 use tracing::trace;
 
+use crate::packet::assists::Assists;
 use crate::packet::{
-    deserialize_bool,
-    deserialize_option,
-    deserialize_vec,
-    marshal,
-    safety_car,
-    units,
     DeserializeUDP,
     DeserializeUDPResult,
     Forecast,
@@ -21,9 +16,16 @@ use crate::packet::{
     StopDetails,
     Track,
     Weather,
+    deserialize_bool,
+    deserialize_option,
+    deserialize_vec,
+    marshal,
+    safety_car,
+    units,
 };
 
-/// The player display info contains information about the player's selected units.
+/// The player display info contains information about the player's selected
+/// units.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PlayerUnits {
     /// The player's selected speed units
@@ -40,10 +42,7 @@ impl DeserializeUDP for PlayerUnits {
     {
         let speed_units = units::Speed::deserialize(&mut reader).await?;
         let temperature_units = units::Temperature::deserialize(&mut reader).await?;
-        Ok(Self {
-            speed_units,
-            temperature_units,
-        })
+        Ok(Self { speed_units, temperature_units })
     }
 }
 
@@ -77,7 +76,8 @@ pub(crate) struct SessionData {
     pit_speed_limit: u8,
     /// Whether the game is paused
     is_game_paused: bool,
-    /// The car index of the car that is being spectated, if the player is spectating
+    /// The car index of the car that is being spectated, if the player is
+    /// spectating
     spectator_car_index: Option<u8>,
     /// Whether the player has SLI Pro support enabled
     sli_pro_native_support: bool,
@@ -92,13 +92,15 @@ pub(crate) struct SessionData {
     /// AI difficulty level 0 - 110
     ai_difficulty: u8,
     /// Season ID - persisted across saves
-    season_link_id: u8,
+    season_link_id: u32,
     /// Weekend Link ID - unique identifier for the weekend
-    weekend_link_id: u8,
+    weekend_link_id: u32,
     /// Session Link ID - unique identifier for the session
-    session_link_id: u8,
+    session_link_id: u32,
     /// Pit stop strategy
     pit_stop_strategy: StopDetails,
+    /// Assists
+    assists: Assists,
     /// Game mode
     game_mode: GameMode,
     /// Ruleset
@@ -152,11 +154,7 @@ impl DeserializeUDP for SessionData {
         let spectator_car_index = {
             let is_spectating = deserialize_bool(&mut reader).await?;
             let spectator_idx = deserialize_option(&mut reader, 255).await?;
-            if is_spectating {
-                spectator_idx
-            } else {
-                None
-            }
+            if is_spectating { spectator_idx } else { None }
         };
         trace!("parsed spectator_car_index as {spectator_car_index:?}");
         let sli_pro_native_support = deserialize_bool(&mut reader).await?;
@@ -173,14 +171,16 @@ impl DeserializeUDP for SessionData {
         trace!("parsed weather_forecast as {weather_forecast:?}");
         let ai_difficulty = u8::deserialize(&mut reader).await?;
         trace!("parsed ai_difficulty as {ai_difficulty:?}");
-        let season_link_id = u8::deserialize(&mut reader).await?;
+        let season_link_id = u32::deserialize(&mut reader).await?;
         trace!("parsed season_link_id as {season_link_id:?}");
-        let weekend_link_id = u8::deserialize(&mut reader).await?;
+        let weekend_link_id = u32::deserialize(&mut reader).await?;
         trace!("parsed weekend_link_id as {weekend_link_id:?}");
-        let session_link_id = u8::deserialize(&mut reader).await?;
+        let session_link_id = u32::deserialize(&mut reader).await?;
         trace!("parsed session_link_id as {session_link_id:?}");
         let pit_stop_strategy = StopDetails::deserialize(&mut reader).await?;
         trace!("parsed pit_stop_strategy as {pit_stop_strategy:?}");
+        let assists = Assists::deserialize(&mut reader).await?;
+        trace!("parsed assists as {assists:?}");
         let game_mode = GameMode::deserialize(&mut reader).await?;
         trace!("parsed game_mode as {game_mode:?}");
         let ruleset = RuleSet::deserialize(&mut reader).await?;
@@ -223,6 +223,7 @@ impl DeserializeUDP for SessionData {
             weekend_link_id,
             session_link_id,
             pit_stop_strategy,
+            assists,
             game_mode,
             ruleset,
             time_of_day,

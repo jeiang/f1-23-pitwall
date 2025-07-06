@@ -1,11 +1,8 @@
 use tokio::io::AsyncRead;
 use tracing::trace;
 
-use crate::packet::{
-    reader::DeserializeUDP,
-    DeserializeUDPResult,
-    Vector3,
-};
+use crate::packet::reader::DeserializeUDP;
+use crate::packet::{DeserializeUDPResult, Vector3};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct MotionData {

@@ -1,11 +1,8 @@
 use num_derive::FromPrimitive;
 use tokio::io::AsyncRead;
 
-use crate::packet::{
-    macros::generate_enum_deserialize_impls,
-    DeserializeUDP,
-    DeserializeUDPResult,
-};
+use crate::packet::macros::generate_enum_deserialize_impls;
+use crate::packet::{DeserializeUDP, DeserializeUDPResult};
 
 /// Pit Status of a car
 
@@ -38,10 +35,6 @@ impl DeserializeUDP for StopDetails {
         let ideal_lap = u8::deserialize(&mut reader).await?;
         let latest_lap = u8::deserialize(&mut reader).await?;
         let estimated_position = u8::deserialize(&mut reader).await?;
-        Ok(Self {
-            ideal_lap,
-            latest_lap,
-            estimated_position,
-        })
+        Ok(Self { ideal_lap, latest_lap, estimated_position })
     }
 }
